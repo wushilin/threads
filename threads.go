@@ -77,11 +77,13 @@ func (v *ThreadPool) CompletedCount() int64 {
 }
 
 // Stop accepting new jobs. After this call is called, future calls to Submit will panic
+// You can't shutdown more than once, sorry
 func (v *ThreadPool) Shutdown() {
 	close(v.jobs) //now submission will panic
 }
 
-// Wait until all jobs are processed (after this, All previously returned future should be ready for retrieval
+// Wait until all jobs are processed. after this, All previously returned future should be ready for retrieval
+// Must call Shutdown() first or Wait() will block forever
 func (v *ThreadPool) Wait() {
 	v.wg.Wait()
 }
