@@ -70,7 +70,7 @@ ok, result := fut.GetWaitTimeout(3*time.Second)
 if ok {
   // result is ready
   fmt.Println("Result of 1 + 6 is", result) // <= result will be 7
-} else [
+} else {
   fmt.Println("Result is not ready yet") // <= timed out after 3 seconds
 }
 ```
@@ -81,7 +81,7 @@ thread_pool.Shutdown()
 // Now thread_pool can't submit new jobs. All existing submited jobs will be still processed
 // The future previous returned will still materialize
 
-// Wait until all jobs to complete
+// Wait until all jobs to complete. Calling Wait() on non-shutdown thread pool will be blocked forever
 thread_pool.Wait() 
 // after this call, all futures should be able to be retrieved without delay
 // You can safely disregard this thread_pool after this call. It is useless anyway
