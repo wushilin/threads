@@ -26,7 +26,7 @@ import "github.com/wushilin/threads"
 
 ### Creating a thread pool, with 30 executors and max of 1 million pending jobs
 ```
-thread_pool := threads.NewPool(30, 1000000)
+var thread_pool *threads.ThreadPool = threads.NewPool(30, 1000000)
 // Note that if pending job is more than 1000000, the new submission (call to Submit) will be blocked
 // until the job queue has some space.
 
@@ -39,7 +39,7 @@ thread_pool.Start()
 
 ### Submiting a job and gets a Future
 ```
-fut := thread_pool.Submit(func() interface{} {
+var fut *threads.Future = thread_pool.Submit(func() interface{} {
   return  1 + 6
 })
 
