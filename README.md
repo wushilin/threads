@@ -1,4 +1,8 @@
-# golib
+# Threads
+
+Starting go routine in golang is far too easy, and it is cheap! However, generally it is still a a bad
+idea to allow go routine to grow uncontrolled. Hence sometimes you prefer a thread pool concept just like
+java. Here you have it
 
 ## Install
 ```
