@@ -25,6 +25,9 @@ type Future struct {
 // Represent a job that returns something for future retrieval. Could be nil
 type JobFunc func() interface{}
 
+// A function that is no args, no returns
+type VoidFunc func()
+
 // Internal concept of a Job and its produced result
 type Job struct {
 	jobf   JobFunc
@@ -125,4 +128,20 @@ func (v *Future) GetWaitTimeout(t time.Duration) (bool, interface{}) {
 	case <-time.After(t):
 		return false, nil
 	}
+}
+
+// Run a func and get its result as a futur immediately
+// Note this is unmanaged, it is as good as your own go func(){}()
+// Just that it is wrapped with a nice Future object, and you can
+// retrieve it as many times as you want, and you can retrieve with timeout
+func FutureOf(f JobFunc) *Future {
+	if f == nil {
+		panic("Can't create Future of nil function")
+	}
+	result := &Future{nil, make(chan bool, 1)}
+	go func() {
+		resultVal := f()
+		result.updateResult(resultVal)
+	}()
+	return result
 }
