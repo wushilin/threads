@@ -130,6 +130,29 @@ func (v *Future) GetWaitTimeout(t time.Duration) (bool, interface{}) {
 	}
 }
 
+// Do a list of jobs in parallel, and return the List of futures immediately
+// This will create as many threads as possible
+func ParallelDo(jobs []func() interface{}) []*Future {
+	return ParallelDoWithLimit(jobs, len(jobs))
+}
+
+// Do a list of jobs in parallel, and return the List of futures immediately
+func ParallelDoWithLimit(jobs []func() interface{}, nThreads int) []*Future {
+	if nThreads > len(jobs) {
+		nThreads = len(jobs)
+	}
+	tp :=	NewPool(nThreads, len(jobs))
+	tp.Start()
+	defer func() {
+		tp.Shutdown()
+		tp.Wait()
+	}()
+	result := make([]*Future, len(jobs)
+	for idx, nj := range(jobs) {
+		result[idx] = tp.Submit(nj)
+	}
+	return result
+}
 // Run a func and get its result as a futur immediately
 // Note this is unmanaged, it is as good as your own go func(){}()
 // Just that it is wrapped with a nice Future object, and you can
