@@ -130,14 +130,25 @@ func (v *Future) GetWaitTimeout(t time.Duration) (bool, interface{}) {
 	}
 }
 
+type FutureGroup struct {
+	Futures []*Future
+}
+
+func (v FutureGroup) WaitAll() []interface{} {
+	result := make([]interface{}, len(v.Futures))
+	for idx, nf := range(v.Futures) {
+		result[idx] = nf.GetWait();
+	}
+	return result;
+}
 // Do a list of jobs in parallel, and return the List of futures immediately
 // This will create as many threads as possible
-func ParallelDo(jobs []func() interface{}) []*Future {
+func ParallelDo(jobs []func() interface{}) FutureGroup {
 	return ParallelDoWithLimit(jobs, len(jobs))
 }
 
 // Do a list of jobs in parallel, and return the List of futures immediately
-func ParallelDoWithLimit(jobs []func() interface{}, nThreads int) []*Future {
+func ParallelDoWithLimit(jobs []func() interface{}, nThreads int) FutureGroup {
 	if nThreads > len(jobs) {
 		nThreads = len(jobs)
 	}
@@ -151,7 +162,7 @@ func ParallelDoWithLimit(jobs []func() interface{}, nThreads int) []*Future {
 	for idx, nj := range(jobs) {
 		result[idx] = tp.Submit(nj)
 	}
-	return result
+	return FutureGroup{result}
 }
 // Run a func and get its result as a futur immediately
 // Note this is unmanaged, it is as good as your own go func(){}()
