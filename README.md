@@ -93,3 +93,22 @@ thread_pool.ActiveCount() // active jobs - being executed right now
 thread_pool.PendingCount() // pending count - not started yet
 thread_pool.CompletedCount() //jobs done - result populated already
 ```
+
+### Convenient wrapper to do multiple tasks in parallel
+```
+jobs := make([]func() interface{}, 60)
+//... populate the jobs with actual jobs
+// This will start as many threads as possible to run things in parallel
+var futures []*threads.Future = threads.ParallelDo(jobs)
+
+// This will start at most 10 threads for parallel processing
+var futures []*threads.Future = threads.ParallelDoWithLimit(jobs, 10)
+
+// retrieve futures
+for _, next_future := range(futures) {
+  result := next_future.GetWait()
+}
+
+```
+
+
