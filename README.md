@@ -5,7 +5,7 @@ idea to allow go routine to grow uncontrolled. Hence sometimes you prefer a thre
 java. Here you have it
 
 ## Install
-```
+```go
 go get github.com/wushilin/threads
 ```
 
@@ -20,12 +20,12 @@ Browse http://localhost:16666
 
 #### Import
 
-```
+```go
 import "github.com/wushilin/threads"
 ```
 
 ### Creating a thread pool, with 30 executors and max of 1 million pending jobs
-```
+```go
 var thread_pool *threads.ThreadPool = threads.NewPool(30, 1000000)
 // Note that if pending job is more than 1000000, the new submission (call to Submit) will be blocked
 // until the job queue has some space.
@@ -38,7 +38,7 @@ thread_pool.Start()
 ``` 
 
 ### Submiting a job and gets a Future
-```
+```go
 var fut *threads.Future = thread_pool.Submit(func() interface{} {
   return  1 + 6
 })
@@ -51,7 +51,7 @@ var fut *threads.Future = thread_pool.Submit(func() interface{} {
 ```
 
 ### Wait until the future is ready to be retrieve
-```
+```go
 result := fut.GetWait().(int) // <= result will be 7
 fmt.Println("Result of 1 + 6 is", result)
 // Wait until it is run and result is ready
@@ -75,7 +75,7 @@ if ok {
 }
 ```
 ### Stop accepting new jobs
-```
+```go
 // once shutdown, you can't re-start it back
 thread_pool.Shutdown()
 // Now thread_pool can't submit new jobs. All existing submited jobs will be still processed
@@ -88,14 +88,14 @@ thread_pool.Wait()
 ```
 
 ### Getting stats of this pool
-```
+```go
 thread_pool.ActiveCount() // active jobs - being executed right now
 thread_pool.PendingCount() // pending count - not started yet
 thread_pool.CompletedCount() //jobs done - result populated already
 ```
 
 ### Convenient wrapper to do multiple tasks in parallel
-```
+```go
 jobs := make([]func() interface{}, 60)
 //... populate the jobs with actual jobs
 // This will start as many threads as possible to run things in parallel
