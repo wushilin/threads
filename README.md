@@ -99,15 +99,16 @@ thread_pool.CompletedCount() //jobs done - result populated already
 jobs := make([]func() interface{}, 60)
 //... populate the jobs with actual jobs
 // This will start as many threads as possible to run things in parallel
-var futures []*threads.Future = threads.ParallelDo(jobs)
+var fg threads.FutureGroup = threads.ParallelDo(jobs)
 
 // This will start at most 10 threads for parallel processing
-var futures []*threads.Future = threads.ParallelDoWithLimit(jobs, 10)
+var fg threads.FutureGroup = threads.ParallelDoWithLimit(jobs, 10)
 
-// retrieve futures
-for _, next_future := range(futures) {
-  result := next_future.GetWait()
-}
+// retrieve futures, wait for all and get result!
+var results[]interface{} = fg.WaitAll()
+
+// If you prefer more flexible handling...
+var []*threads.Future futures = fg.Futures
 
 ```
 
