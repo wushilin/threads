@@ -147,7 +147,7 @@ func ParallelDoWithLimit(jobs []func() interface{}, nThreads int) []*Future {
 		tp.Shutdown()
 		tp.Wait()
 	}()
-	result := make([]*Future, len(jobs)
+	result := make([]*Future, len(jobs))
 	for idx, nj := range(jobs) {
 		result[idx] = tp.Submit(nj)
 	}
