@@ -112,4 +112,34 @@ var []*threads.Future futures = fg.Futures
 
 ```
 
+# Chain futures, to get futures from futures
 
+```
+func adder(i interface{}) interface{} {
+  return i.(int) + 1
+}
+
+func sleeper() interface{} {
+  time.Sleep(1 * time.Second)
+  return 5
+}
+
+func print_value(i interface{}) {
+  fmt.Println(i)
+}
+
+future1 := FutureOf(sleeper).ThenMap(adder) // future1 materialize when sleeper return, and final value will be 6
+future1.Then(print_value) // print_value is run after future1 is materialized
+```
+
+# Change FutureGroup from struct to pointer, to save possible large array copy (go default uses pass by value)
+All code that was using FutureGroup, now should use *FutureGroup
+
+# Future Group now supports
+```
+FutureGroup.Count() // Count the number of futures in the group
+FutureGroup.Futures() // Get a copy of futures (not the underlying future directly)
+FutureGroup.ReadyCount() // Check how many of futures are ready
+FutureGroup.IsAllReady() // Test if all results are present (non-blocking)
+FutureGroup.ThreadPool() // returns original thread pool that produced the future group. You may want to call its Wait() methods (but usually not necessary)
+```
