@@ -1,3 +1,6 @@
+# I will rewrite this with Generics when Go1.18 is realeased. Stay tuned!
+
+
 # Threads
 
 Starting go routine in golang is far too easy, and it is cheap! However, generally it is still a a bad
