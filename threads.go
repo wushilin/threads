@@ -28,6 +28,10 @@ type JobFunc func() interface{}
 // A function that is no args, no returns
 type VoidFunc func()
 
+type MapFunc func(v interface{}) interface{}
+
+type CallFunc func(v interface{})
+
 // Internal concept of a Job and its produced result
 type Job struct {
 	jobf   JobFunc
@@ -120,6 +124,21 @@ func (v *Future) GetWait() interface{} {
 	return v.result
 }
 
+// Get a new future with the map function that operates on the future's result
+// FutureOf(func() int {return 5}).ThenMap(func(i int) int {return i + 1}).GetWait() => 6
+func (v *Future) ThenMap(task MapFunc) *Future {
+	return FutureOf(func() interface{} {
+		return task(v.GetWait())
+	})
+}
+
+// Run the job after future materialized, this has no return value
+// FutureOf(func() int {return 5}).Then(func(i int) {fmt.Println(i)}) => Prints 5
+func (v *Future) Then(task CallFunc) {
+	result := v.GetWait()
+	task(result)
+}
+
 // Retrieve the futures value, with a timeout. The bool value represent whether this retrieval did succeed
 func (v *Future) GetWaitTimeout(t time.Duration) (bool, interface{}) {
 	select {
@@ -131,39 +150,100 @@ func (v *Future) GetWaitTimeout(t time.Duration) (bool, interface{}) {
 }
 
 type FutureGroup struct {
-	Futures []*Future
+	futures []*Future
+	pool    *ThreadPool
+	flags   []bool
 }
 
-func (v FutureGroup) WaitAll() []interface{} {
-	result := make([]interface{}, len(v.Futures))
-	for idx, nf := range(v.Futures) {
-		result[idx] = nf.GetWait();
-	}
-	return result;
+func NewFutureGroup(futures []*Future, pool *ThreadPool) *FutureGroup {
+	flags := make([]bool, len(futures))
+
+	return &FutureGroup{futures, pool, flags}
 }
+func (v *FutureGroup) Count() int64 {
+	return int64(len(v.futures))
+}
+
+func (v *FutureGroup) Futures() []*Future {
+	result := make([]*Future, len(v.futures))
+
+	for i := 0; i < len(v.futures); i++ {
+		result[i] = v.futures[i]
+	}
+
+	return result
+}
+
+func (v *FutureGroup) ThreadPool() *ThreadPool {
+	return v.pool
+}
+
+func (v *FutureGroup) ReadyCount() int64 {
+	var sum int64 = 0
+	for idx, nf := range v.futures {
+		if v.flags[idx] {
+			sum++
+			continue
+		}
+		ready, _ := nf.GetNoWait()
+		if ready {
+			sum++
+			v.flags[idx] = true
+		}
+	}
+	return sum
+}
+
+func (v *FutureGroup) IsAllReady() bool {
+	return v.ReadyCount() == v.Count()
+}
+
+func (v *FutureGroup) WaitTimeOut(timeout time.Duration) (bool, []interface{}) {
+	resultchan := make(chan []interface{}, 1)
+	go func() {
+		resultchan <- v.WaitAll()
+		close(resultchan)
+	}()
+	select {
+	case result := <-resultchan:
+		return true, result
+	case <-time.After(timeout):
+		return false, nil
+	}
+}
+
+func (v *FutureGroup) WaitAll() []interface{} {
+	result := make([]interface{}, len(v.futures))
+	for idx, nf := range v.futures {
+		result[idx] = nf.GetWait()
+	}
+	return result
+}
+
 // Do a list of jobs in parallel, and return the List of futures immediately
 // This will create as many threads as possible
-func ParallelDo(jobs []func() interface{}) FutureGroup {
+func ParallelDo(jobs []JobFunc) *FutureGroup {
 	return ParallelDoWithLimit(jobs, len(jobs))
 }
 
 // Do a list of jobs in parallel, and return the List of futures immediately
-func ParallelDoWithLimit(jobs []func() interface{}, nThreads int) FutureGroup {
+func ParallelDoWithLimit(jobs []JobFunc, nThreads int) *FutureGroup {
 	if nThreads > len(jobs) {
 		nThreads = len(jobs)
 	}
-	tp :=	NewPool(nThreads, len(jobs))
+	tp := NewPool(nThreads, len(jobs))
 	tp.Start()
 	defer func() {
 		tp.Shutdown()
-		tp.Wait()
+		//tp.Wait()
 	}()
 	result := make([]*Future, len(jobs))
-	for idx, nj := range(jobs) {
+	for idx, nj := range jobs {
 		result[idx] = tp.Submit(nj)
 	}
-	return FutureGroup{result}
+	return NewFutureGroup(result, tp)
 }
+
 // Run a func and get its result as a futur immediately
 // Note this is unmanaged, it is as good as your own go func(){}()
 // Just that it is wrapped with a nice Future object, and you can
