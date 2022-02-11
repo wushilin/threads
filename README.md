@@ -99,16 +99,16 @@ thread_pool.CompletedCount() //jobs done - result populated already
 jobs := make([]func() interface{}, 60)
 //... populate the jobs with actual jobs
 // This will start as many threads as possible to run things in parallel
-var fg threads.FutureGroup = threads.ParallelDo(jobs)
+var fg *threads.FutureGroup = threads.ParallelDo(jobs)
 
 // This will start at most 10 threads for parallel processing
-var fg threads.FutureGroup = threads.ParallelDoWithLimit(jobs, 10)
+var fg *threads.FutureGroup = threads.ParallelDoWithLimit(jobs, 10)
 
 // retrieve futures, wait for all and get result!
 var results[]interface{} = fg.WaitAll()
 
-// If you prefer more flexible handling...
-var []*threads.Future futures = fg.Futures
+// If you prefer more flexible handling... - you get a copy of the array
+var []*threads.Future futures = fg.Futures()
 
 ```
 
@@ -128,8 +128,9 @@ func print_value(i interface{}) {
   fmt.Println(i)
 }
 
-future1 := FutureOf(sleeper).ThenMap(adder) // future1 materialize when sleeper return, and final value will be 6
-future1.Then(print_value) // print_value is run after future1 is materialized
+future1 := FutureOf(sleeper).ThenMap(adder) // Non blocking, gets the future immediately: future1 materialize when sleeper return, and final value will be 6 
+//(sleeper returned value will be then added 1)
+future1.Then(print_value) // Non blocking, print_value is immediately run after future1 is materialized
 ```
 
 # Change FutureGroup from struct to pointer, to save possible large array copy (go default uses pass by value)
@@ -142,4 +143,9 @@ FutureGroup.Futures() // Get a copy of futures (not the underlying future direct
 FutureGroup.ReadyCount() // Check how many of futures are ready
 FutureGroup.IsAllReady() // Test if all results are present (non-blocking)
 FutureGroup.ThreadPool() // returns original thread pool that produced the future group. You may want to call its Wait() methods (but usually not necessary)
+```
+# Added Instantly method
+
+```
+threads.Instantly(5) => Get a Future that materializes instantly with value 5
 ```

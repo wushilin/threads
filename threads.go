@@ -6,6 +6,8 @@ import (
 	"time"
 )
 
+var globalMutex sync.Mutex
+
 // Represent a Thread Pool Object
 type ThreadPool struct {
 	limit            int
@@ -47,25 +49,35 @@ func NewPool(threads int, max_pending_jobs int) *ThreadPool {
 
 // Starts the worker threads. Number of threads is represented by pool's threads configuration
 func (v *ThreadPool) Start() {
-	for i := 0; i < v.limit; i++ {
-		v.wg.Add(1)
-		go func() {
-			defer v.wg.Done()
-			for next := range v.jobs {
-				atomic.AddInt32(&v.active_count, 1)
-				result := next.jobf()
-				next.result.updateResult(result)
-				atomic.AddInt32(&v.active_count, -1)
-				atomic.AddInt64(&v.completion_count, 1)
-			}
-		}()
+	globalMutex.Lock()
+	defer globalMutex.Unlock()
+	if !v.IsRunning() {
+		for i := 0; i < v.limit; i++ {
+			v.wg.Add(1)
+			go func() {
+				defer v.wg.Done()
+				for next := range v.jobs {
+					atomic.AddInt32(&v.active_count, 1)
+					result := next.jobf()
+					next.result.updateResult(result)
+					atomic.AddInt32(&v.active_count, -1)
+					atomic.AddInt64(&v.completion_count, 1)
+				}
+			}()
+		}
+		v.started = time.Now()
+	} else {
+		panic("Why you want to start your ThreadPool twice?")
 	}
-	v.started = time.Now()
 }
 
 // Returns how many threads are working on job currently
 func (v *ThreadPool) ActiveCount() int {
 	return int(v.active_count)
+}
+
+func (v *ThreadPool) IsRunning() bool {
+	return !v.started.IsZero()
 }
 
 // Returns when the thread pool gets started
@@ -98,7 +110,7 @@ func (v *ThreadPool) Wait() {
 // Submit a job and return a Future value can be retrieved later sync or async
 func (v *ThreadPool) Submit(j JobFunc) *Future {
 	if j == nil {
-		panic("Can't submit nill function")
+		panic("Can't submit nil function")
 	}
 	result := &Future{nil, make(chan bool, 1)}
 	nj := &Job{j, result}
@@ -108,8 +120,10 @@ func (v *ThreadPool) Submit(j JobFunc) *Future {
 
 func (v *Future) updateResult(result interface{}) {
 	v.result = result
-	v.signal <- true
-	close(v.signal)
+	if v.signal != nil {
+		v.signal <- true
+		close(v.signal)
+	}
 }
 
 // Get the future value without wait. bool value is whether this retrieve did retrieve something, the interface{} value
@@ -120,7 +134,9 @@ func (v *Future) GetNoWait() (bool, interface{}) {
 
 // Synchronously retrieve the future's value. It will block until the value is available
 func (v *Future) GetWait() interface{} {
-	<-v.signal
+	if v.signal != nil {
+		<-v.signal // if signal did happen, this does nothing because the channel would have been closed in updateResult method call
+	}
 	return v.result
 }
 
@@ -141,6 +157,10 @@ func (v *Future) Then(task CallFunc) {
 
 // Retrieve the futures value, with a timeout. The bool value represent whether this retrieval did succeed
 func (v *Future) GetWaitTimeout(t time.Duration) (bool, interface{}) {
+	if v.signal == nil {
+		return true, v.result
+	}
+
 	select {
 	case <-v.signal:
 		return true, v.result
@@ -257,5 +277,10 @@ func FutureOf(f JobFunc) *Future {
 		resultVal := f()
 		result.updateResult(resultVal)
 	}()
+	return result
+}
+
+func Instantly(valueObj interface{}) *Future {
+	result := &Future{valueObj, nil}
 	return result
 }

@@ -25,13 +25,16 @@ func TestFuture(t *testing.T) {
 		tasks[i] = sleeper
 	}
 	fmt.Printf("About to start\n")
-	fg := ParallelDoWithLimit(tasks, 5000)
+	fg := ParallelDoWithLimit(tasks, 500)
 	fmt.Printf("FutureGroup is %v\n", fg)
 	for {
 		fmt.Printf("Count: %d\n", fg.Count())
 		fmt.Printf("ReadyCount: %d\n", fg.ReadyCount())
 		ready, result := fg.WaitTimeOut(100 * time.Millisecond)
 		fmt.Println(ready, result)
+		fmt.Printf("Active count: %d\n", fg.ThreadPool().ActiveCount())
+		fmt.Printf("Pending jobs: %d\n", fg.ThreadPool().PendingCount())
+		fmt.Printf("Completed jobs: %d\n", fg.ThreadPool().CompletedCount())
 		if ready {
 			break
 		}
@@ -41,6 +44,9 @@ func TestFuture(t *testing.T) {
 	fmt.Println("About to wait")
 	fg.ThreadPool().Wait()
 	fmt.Println("Wait done")
+
+	futInstant := Instantly(5)
+	futInstant.ThenMap(mapadd).Then(printer)
 }
 
 func mapadd(i interface{}) interface{} {
@@ -48,7 +54,7 @@ func mapadd(i interface{}) interface{} {
 }
 
 func sleeper() interface{} {
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 	return 5
 }
 
