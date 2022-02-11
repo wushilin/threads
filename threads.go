@@ -280,7 +280,7 @@ func FutureOf(f JobFunc) *Future {
 	return result
 }
 
-func Instantly(valueObj interface{}) *Future {
+func InstantFuture(valueObj interface{}) *Future {
 	result := &Future{valueObj, nil}
 	return result
 }

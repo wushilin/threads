@@ -147,5 +147,5 @@ FutureGroup.ThreadPool() // returns original thread pool that produced the futur
 # Added Instantly method
 
 ```
-threads.Instantly(5) => Get a Future that materializes instantly with value 5
+threads.InstantFuture(5) => Get a Future that materializes instantly with value 5
 ```

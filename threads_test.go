@@ -45,7 +45,7 @@ func TestFuture(t *testing.T) {
 	fg.ThreadPool().Wait()
 	fmt.Println("Wait done")
 
-	futInstant := Instantly(5)
+	futInstant := InstantFuture(5)
 	futInstant.ThenMap(mapadd).Then(printer)
 }
 
