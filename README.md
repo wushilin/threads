@@ -66,7 +66,7 @@ ok, result := fut.GetNow()
 if ok {
   // result is ready
   fmt.Println("Result of 1 + 6 is", result) // <= result will be 7
-} else [
+} else {
   fmt.Println("Result is not ready yet")
 }
 
@@ -111,7 +111,7 @@ var fg *threads.FutureGroup = threads.ParallelDo(jobs)
 var fg *threads.FutureGroup = threads.ParallelDoWithLimit(jobs, 10)
 
 // retrieve futures, wait for all and get result!
-var results[]interface{} = fg.WaitAll()
+var results []int = fg.WaitAll()
 
 // If you prefer more flexible handling... - you get a copy of the array
 var []future.Future futures = fg.Futures()
