@@ -4,28 +4,19 @@ import (
 	"fmt"
 	"testing"
 	"time"
+  future "github.com/wushilin/future"
 )
 
 func TestFuture(t *testing.T) {
-	/*
-		future1 := FutureOf(sleeper)
-		fmt.Println(future1.GetNoWait())
-		fmt.Println(future1.GetNoWait())
-
-		future2 := future1.ThenMap(mapadd)
-		future2.Then(printer)
-		future3 := future2.ThenMap(mapadd)
-		future3.Then(printer)
-		fmt.Println(future2.GetNoWait())
-
-	*/
-	tasks := make([]JobFunc, 10000)
+  tp := NewPool(10, 100000)
+	tasks := make([]func() int, 10)
 
 	for i := 0; i < len(tasks); i++ {
 		tasks[i] = sleeper
 	}
 	fmt.Printf("About to start\n")
-	fg := ParallelDoWithLimit(tasks, 500)
+  tp.Start()
+	fg := SubmitTasks(tp, tasks)
 	fmt.Printf("FutureGroup is %v\n", fg)
 	for {
 		fmt.Printf("Count: %d\n", fg.Count())
@@ -42,22 +33,23 @@ func TestFuture(t *testing.T) {
 
 	fmt.Println(fg.IsAllReady())
 	fmt.Println("About to wait")
-	fg.ThreadPool().Wait()
+  tp.Shutdown()
+	tp.Wait()
 	fmt.Println("Wait done")
 
-	futInstant := InstantFuture(5)
-	futInstant.ThenMap(mapadd).Then(printer)
+	futInstant := future.InstantFutureOf(5)
+	future.Chain(futInstant, mapadd).Then(printer[int])
 }
 
-func mapadd(i interface{}) interface{} {
-	return i.(int) + 1
+func mapadd(i int) int {
+	return i + 1
 }
 
-func sleeper() interface{} {
+func sleeper() int {
 	time.Sleep(1 * time.Second)
 	return 5
 }
 
-func printer(i interface{}) {
+func printer[T any](i T) {
 	fmt.Printf("You got %v\n", i)
 }
