@@ -1,4 +1,16 @@
 # I have re-written this with Generics, Yay!
+Thanks to go generics, the code does not use interface{} now!
+
+However, due to Golang generics limitation (methods can't introduce new type parameter), so instead of 
+```go
+pool.Submit(func() interface{})
+```
+We now have to use 
+```go
+threads.SubmitTask(pool, func() T)
+```
+
+I personally don't think this is a big deal
 
 
 # Threads
