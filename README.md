@@ -140,7 +140,7 @@ fut.Then(print).Then(save) => multiple then functions can be called
 fut := SubmitTask(thread_pool, func() int {
 	return 5
 })
-fut2 := Chain(fut, func(i int) string {
+fut2 := future.Chain(fut, func(i int) string {
 	return fmt.Sprintf("Student #%d", i)
 }
 
