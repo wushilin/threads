@@ -2,21 +2,34 @@ package threads
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
 	"time"
-  future "github.com/wushilin/future"
+
+	future "github.com/wushilin/future"
 )
 
 func TestFuture(t *testing.T) {
-  tp := NewPool(10, 100000)
-	tasks := make([]func() int, 10)
+	tp := NewPool(10, 1000000)
+	tasks := make([]func() int, 1000)
 
 	for i := 0; i < len(tasks); i++ {
 		tasks[i] = sleeper
 	}
 	fmt.Printf("About to start\n")
-  tp.Start()
+	tp.Start()
 	fg := SubmitTasks(tp, tasks)
+	go func() {
+		for {
+			ok, result := fg.WaitTimeOut(time.Second)
+			if !ok {
+				fmt.Println("fg.WaitTimeout didn't succeed")
+			} else {
+				fmt.Printf("fg.WaitTimeout did work! %v\n", result)
+				return
+			}
+		}
+	}()
 	fmt.Printf("FutureGroup is %v\n", fg)
 	for {
 		fmt.Printf("Count: %d\n", fg.Count())
@@ -33,7 +46,7 @@ func TestFuture(t *testing.T) {
 
 	fmt.Println(fg.IsAllReady())
 	fmt.Println("About to wait")
-  tp.Shutdown()
+	tp.Shutdown()
 	tp.Wait()
 	fmt.Println("Wait done")
 
@@ -45,9 +58,11 @@ func mapadd(i int) int {
 	return i + 1
 }
 
+var r = rand.New(rand.NewSource(99))
+
 func sleeper() int {
-	time.Sleep(1 * time.Second)
-	return 5
+	time.Sleep(time.Duration((r.Int31() % 100)) * time.Millisecond)
+	return 1
 }
 
 func printer[T any](i T) {
